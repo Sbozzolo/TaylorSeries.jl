@@ -293,7 +293,8 @@ for T = (:Taylor1, :TaylorN)
             end
 
             kodd = k%2
-            kend = div(k - 2 + kodd, 2)
+            # kend = div(k - 2 + kodd, 2)
+            kend = (k - 2 + kodd) >> 1
             @inbounds for i = 0:kend
                 if $T == Taylor1
                     c[k] += a[i] * a[k-i]
@@ -305,9 +306,11 @@ for T = (:Taylor1, :TaylorN)
             kodd == 1 && return nothing
 
             if $T == Taylor1
-                @inbounds c[k] += a[div(k,2)]^2
+                # @inbounds c[k] += a[div(k,2)]^2
+                @inbounds c[k] += a[k >> 1]^2
             else
-                sqr!(c[k], a[div(k,2)])
+                # sqr!(c[k], a[div(k,2)])
+                sqr!(c[k], a[k >> 1])
             end
 
             return nothing
@@ -426,7 +429,8 @@ coefficient, which must be even.
     end
 
     kodd = (k - k0)%2
-    kend = div(k - k0 - 2 + kodd, 2)
+    # kend = div(k - k0 - 2 + kodd, 2)
+    kend = (k - k0 - 2 + kodd) >> 1
     imax = min(k0+kend, a.order)
     imin = max(k0+1, k+k0-a.order)
     imin ≤ imax && ( @inbounds c[k] = c[imin] * c[k+k0-imin] )
@@ -454,7 +458,8 @@ end
     end
 
     kodd = k%2
-    kend = div(k - 2 + kodd, 2)
+    # kend = div(k - 2 + kodd, 2)
+    kend = (k - 2 + kodd) >> 1
     @inbounds for i = 1:kend
         mul!(c[k], c[i], c[k-i])
     end
