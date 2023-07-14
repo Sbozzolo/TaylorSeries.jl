@@ -245,15 +245,22 @@ Returns the type of the elements of the coefficients of `a`.
 @inline normalize_taylor(a::AbstractSeries) = a
 
 
+## myminorder
+function myminorder(a, b)
+    minorder, maxorder = minmax(a.order, b.order)
+    if minorder ≤ 0
+        minorder = maxorder
+    end
+    return minorder
+end
+
+
 ## fixorder ##
 for T in (:Taylor1, :TaylorN)
     @eval begin
         @inline function fixorder(a::$T, b::$T)
             a.order == b.order && return a, b
-            minorder, maxorder = minmax(a.order, b.order)
-            if minorder ≤ 0
-                minorder = maxorder
-            end
+            minorder = myminorder(a, b)
             return $T(copy(a.coeffs), minorder), $T(copy(b.coeffs), minorder)
         end
     end
@@ -262,6 +269,23 @@ end
 function fixorder(a::HomogeneousPolynomial, b::HomogeneousPolynomial)
     @assert a.order == b.order
     return a, b
+end
+
+for T in (:HomogeneousPolynomial, :TaylorN)
+    @eval function fixorder(a::Taylor1{$T{T}}, b::Taylor1{$T{S}}) where
+            {T<:NumberNotSeries, S<:NumberNotSeries}
+        (a.order == b.order) && (all(get_order.(a[:]) .== get_order.(b[:]))) && return a, b
+        minordT = myminorder(a, b)
+        aa = Taylor1(a.coeffs, minordT)
+        bb = Taylor1(b.coeffs, minordT)
+        for ind in eachindex(aa)
+            aa[ind].order == bb[ind].order && continue
+            minordQ = myminorder(aa[ind], bb[ind])
+            aa[ind], bb[ind] =
+                TaylorN(aa[ind].coeffs, minordQ), TaylorN(bb[ind].coeffs, minordQ)
+        end
+        return aa, bb
+    end
 end
 
 
