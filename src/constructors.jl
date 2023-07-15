@@ -48,7 +48,8 @@ Taylor1(x::Taylor1{T}) where {T<:Number} = x
 Taylor1(coeffs::Array{T,1}, order::Int) where {T<:Number} = Taylor1{T}(coeffs, order)
 Taylor1(coeffs::Array{T,1}) where {T<:Number} = Taylor1(coeffs, length(coeffs)-1)
 function Taylor1(x::T, order::Int) where {T<:Number}
-    v = fill(zero(x), order+1)
+    # v = fill(zero(x), order+1)
+    v = [zero(x) for i=1:order+1]
     v[1] = x
     return Taylor1(v, order)
 end
@@ -75,6 +76,8 @@ julia> Taylor1(Rational{Int}, 4)
 """
 Taylor1(::Type{T}, order::Int) where {T<:Number} = Taylor1( [zero(T), one(T)], order)
 Taylor1(order::Int) = Taylor1(Float64, order)
+
+
 
 ######################### HomogeneousPolynomial
 """
@@ -212,4 +215,4 @@ const NumberNotSeries = Union{Real,Complex}
 const NumberNotSeriesN = Union{Real,Complex,Taylor1}
 
 ## Additional Taylor1 outer constructor ##
-Taylor1{T}(x::S) where {T<:Number,S<:NumberNotSeries} = Taylor1([convert(T,x)], 0)
+Taylor1{T}(x::S) where {T<:Number, S<:NumberNotSeries} = Taylor1([convert(T,x)], 0)

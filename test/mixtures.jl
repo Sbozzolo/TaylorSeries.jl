@@ -201,10 +201,13 @@ using Test
 
     # See #92 and #94
     δx, δy = set_variables("δx δy")
-    xx = 1+Taylor1(δx,5)
+    xx = 1+Taylor1(δx, 5)
+    yy = 1+Taylor1(δy, 5)
+    tt = Taylor1([zero(δx), one(δx)], xx.order)
+    @test all((xx, yy) .== (TS.fixorder(xx, yy)))
     @test typeof(xx) == Taylor1{TaylorN{Float64}}
     @test eltype(xx) == Taylor1{TaylorN{Float64}}
-    @test TS.numtype(xx) == TaylorN{Float64}
+    @test TS.numtype(tt) == TaylorN{Float64}
     @test !(@inferred isnan(xx))
     @test !(@inferred isnan(δx))
     @test !(@inferred isinf(xx))
@@ -219,6 +222,11 @@ using Test
     @test xx*δx + Taylor1(typeof(δx),5) == δx + δx^2 + Taylor1(typeof(δx),5)
     @test xx/(1+δx) == one(xx)
     @test typeof(xx+δx) == Taylor1{TaylorN{Float64}}
+    res = 1/(1+δx)
+    @test one(xx)/(xx*(1+tt)) == Taylor1([res, -res, res, -res, res, -res])
+    res = 1/(1+δx)^2
+    @test (xx^2 + yy^2)/(xx*yy) == xx/yy + yy/xx
+    @test ((xx+yy)*tt)^2/((xx+yy)*tt) == (xx+yy)*tt
 
     #testing evaluate and function-like behavior of Taylor1, TaylorN for mixtures:
     t = Taylor1(25)
