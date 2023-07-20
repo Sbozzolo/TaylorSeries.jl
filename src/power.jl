@@ -54,6 +54,11 @@ for T in (:Taylor1, :TaylorN)
     @eval ^(a::$T, x::T) where {T<:Complex} = exp( x*log(a) )
 end
 
+^(a::Taylor1{TaylorN{T}}, n::Integer) where {T<:NumberNotSeries} = a^float(n)
+
+^(a::Taylor1{TaylorN{T}}, r::Rational) where {T<:NumberNotSeries} = a^(r.num/r.den)
+
+
 
 # power_by_squaring; slightly modified from base/intfuncs.jl
 # Licensed under MIT "Expat"
@@ -84,7 +89,7 @@ for T in (:Taylor1, :HomogeneousPolynomial, :TaylorN)
 end
 
 ## Real power ##
-function ^(a::Taylor1, r::S) where {S<:Real}
+function ^(a::Taylor1{T}, r::S) where {T<:Number, S<:Real}
     a0 = constant_term(a)
     aux = one(a0)^r
 
@@ -108,7 +113,6 @@ function ^(a::Taylor1, r::S) where {S<:Real}
     return c
 end
 
-## Real power ##
 function ^(a::TaylorN, r::S) where {S<:Real}
     a0 = constant_term(a)
     aux = one(a0^r)
@@ -133,6 +137,30 @@ function ^(a::TaylorN, r::S) where {S<:Real}
     return c
 end
 
+function ^(a::Taylor1{TaylorN{T}}, r::S) where {T<:NumberNotSeries, S<:Real}
+    a0 = constant_term(a)
+    aux = one(a0)^r
+
+    iszero(r) && return Taylor1(aux, a.order)
+    aa = aux*a
+    r == 1 && return aa
+    r == 2 && return square(aa)
+    r == 1/2 && return sqrt(aa)
+
+    l0 = findfirst(a)
+    lnull = trunc(Int, r*l0 )
+    if (a.order-lnull < 0) || (lnull > a.order)
+        return Taylor1( zero(aux), a.order)
+    end
+    c_order = l0 == 0 ? a.order : min(a.order, trunc(Int,r*a.order))
+    c = Taylor1(zero(aux), c_order)
+    for k = 0:c_order
+        pow!(c, aa, r, k)
+    end
+
+    return c
+end
+
 
 # Homogeneous coefficients for real power
 @doc doc"""
@@ -152,7 +180,8 @@ exploits `k_0`, the order of the first non-zero coefficient of `a`.
 
 """ pow!
 
-@inline function pow!(c::Taylor1{T}, a::Taylor1{T}, r::S, k::Int) where {T<:Number,S<:Real}
+@inline function pow!(c::Taylor1{T}, a::Taylor1{T}, r::S, k::Int) where
+        {T<:Number, S<:Real}
 
     if r == 0
         return one!(c, a, k)
@@ -209,7 +238,7 @@ exploits `k_0`, the order of the first non-zero coefficient of `a`.
 end
 
 @inline function pow!(c::TaylorN{T}, a::TaylorN{T}, r::S, k::Int) where
-        {T<:NumberNotSeriesN,S<:Real}
+        {T<:NumberNotSeriesN, S<:Real}
 
     if r == 0
         return one!(c, a, k)
@@ -257,9 +286,16 @@ end
 function square(a::HomogeneousPolynomial)
     order = 2*a.order
     order > get_order() && return HomogeneousPolynomial(zero(a[1]), get_order())
-
     res = HomogeneousPolynomial(zero(a[1]), order)
     sqr!(res, a)
+    return res
+end
+
+function square(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
+    res = Taylor1(zero(a[0]), a.order)
+    for ordT in eachindex(a)
+        sqr!(res, a, ordT)
+    end
     return res
 end
 
@@ -293,7 +329,6 @@ for T = (:Taylor1, :TaylorN)
             end
 
             kodd = k%2
-            # kend = div(k - 2 + kodd, 2)
             kend = (k - 2 + kodd) >> 1
             @inbounds for i = 0:kend
                 if $T == Taylor1
@@ -316,6 +351,34 @@ for T = (:Taylor1, :TaylorN)
             return nothing
         end
     end
+end
+
+function sqr!(res::Taylor1{TaylorN{T}}, a::Taylor1{TaylorN{T}},
+        ordT::Int) where {T<:NumberNotSeries}
+    if ordT == 0
+        @inbounds for ordQ in eachindex(a[0])
+            @inbounds sqr!(res[0], a[0], ordQ)
+        end
+        return nothing
+    end
+
+    kodd = ordT%2
+    kend = (ordT - 2 + kodd) >> 1
+    @inbounds for ordQ in eachindex(a[ordT])
+        for i = 0:kend
+            mul!(res[ordT], a[i], a[ordT-i], ordQ)
+        end
+        res[ordT][ordQ] = 2 * res[ordT][ordQ]
+    end
+    kodd == 1 && return nothing
+
+    @inbounds aux = zero(a[ordT])
+    @inbounds for ordQ in eachindex(a[0])
+        sqr!(aux, a[ordT >> 1], ordQ)
+        add!(res[ordT], res[ordT], aux, ordQ)
+    end
+
+    return nothing
 end
 
 

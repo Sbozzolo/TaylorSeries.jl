@@ -336,8 +336,11 @@ for (f, fc) in ((:+, :(add!)), (:-, :(subst!)))
             return Taylor1(coeffs, a.order)
         end
 
-        ($f)(a::Taylor1{TaylorN{T}}, b::Taylor1{TaylorN{S}}) where
-            {T<:NumberNotSeries, S<:NumberNotSeries} = ($f)(promote(a, b)...)
+        function ($f)(a::Taylor1{TaylorN{T}}, b::Taylor1{TaylorN{S}}) where
+                {T<:NumberNotSeries, S<:NumberNotSeries}
+            R = promote_type(T,S)
+            return ($f)(convert(Taylor1{TaylorN{R}}, a), convert(Taylor1{TaylorN{R}}, b))
+        end
 
         function ($f)(a::Taylor1{TaylorN{T}}, b::Taylor1{TaylorN{T}}) where
                 {T<:NumberNotSeries}
@@ -444,8 +447,11 @@ function *(a::HomogeneousPolynomial{T}, b::HomogeneousPolynomial{T}) where
     return res
 end
 
-*(a::Taylor1{TaylorN{T}}, b::Taylor1{TaylorN{S}}) where
-    {T<:NumberNotSeries, S<:NumberNotSeries} = *(promote(a,b)...)
+function *(a::Taylor1{TaylorN{T}}, b::Taylor1{TaylorN{S}}) where
+        {T<:NumberNotSeries, S<:NumberNotSeries}
+    R = promote_type(T,S)
+    return *(convert(Taylor1{TaylorN{R}}, a), convert(Taylor1{TaylorN{R}}, b))
+end
 
 function *(a::Taylor1{TaylorN{T}}, b::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
     if (a.order != b.order) || any(get_order.(a[:]) .!= get_order.(b[:]))
