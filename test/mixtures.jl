@@ -30,6 +30,7 @@ using Test
         @test 1 ≥ tN > 2*tN^2 > 100*tN^3 > 0
         @test -2*tN < -tN^2 ≤ 0
     end
+
     @test string(zero(tN)) == "  0.0 + 𝒪(‖x‖¹) + 𝒪(t⁴)"
     @test string(tN) == " ( 1.0 + 𝒪(‖x‖¹)) t + 𝒪(t⁴)"
     @test string(tN + 3Taylor1(Int, 2)) == " ( 4.0 + 𝒪(‖x‖¹)) t + 𝒪(t³)"
@@ -82,12 +83,12 @@ using Test
     @test t1N[0] == HomogeneousPolynomial(1)
     ctN1 = convert(TaylorN{Taylor1{Float64}}, t1N)
     @test convert(eltype(tN1), tN1) === tN1
-    @test eltype(xHt) == HomogeneousPolynomial{Taylor1{Float64}}
     @test eltype(tN1) == TaylorN{Taylor1{Float64}}
     @test eltype(Taylor1([xH])) == Taylor1{HomogeneousPolynomial{Int}}
     @test TS.numtype(xHt) == Taylor1{Float64}
     @test TS.numtype(tN1) == Taylor1{Float64}
     @test TS.numtype(Taylor1([xH])) == HomogeneousPolynomial{Int}
+    @test TS.numtype(t1N) == TaylorN{Float64}
     @test normalize_taylor(tN1) == tN1
     @test get_order(HomogeneousPolynomial([Taylor1(1), 1.0+Taylor1(2)])) == 1
     @test 3*tN1 == TaylorN([HomogeneousPolynomial([3t]),3xHt,3yHt^2])
@@ -227,6 +228,13 @@ using Test
     res = 1/(1+δx)^2
     @test (xx^2 + yy^2)/(xx*yy) == xx/yy + yy/xx
     @test ((xx+yy)*tt)^2/((xx+yy)*tt) == (xx+yy)*tt
+    @test sqrt(xx) == Taylor1(sqrt(xx[0]), xx.order)
+    @test xx^0.25 == sqrt(sqrt(xx))
+    @test (xx*yy*tt^2)^0.5 == sqrt(xx*yy)*tt
+    pp = xx*yy*(1+tt)^4
+    @test pp^0.25 == sqrt(sqrt(pp))
+    @test (xx*yy)^(3/2)*(1+tt+tt^2) == (sqrt(xx*yy))^3*(1+tt+tt^2)
+    @test sqrt((xx+yy+tt)^3) ≈ (xx+yy+tt)^1.5
 
     #testing evaluate and function-like behavior of Taylor1, TaylorN for mixtures:
     t = Taylor1(25)
