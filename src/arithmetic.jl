@@ -755,16 +755,21 @@ end
     end
 
     imin = max(0, ordT+ordfact-b.order)
+    aux = TaylorN(zero(a[ordT][0][1]), a[ordT].order)
     for k in imin:ordT-1
         @inbounds for ordQ in eachindex(a[ordT])
-            mul!(res[ordT], res[k], b[ordT+ordfact-k], ordQ)
+            mul!(aux, res[k], b[ordT+ordfact-k], ordQ)
         end
     end
 
     if ordT+ordfact ≤ b.order
-        aux = a[ordT+ordfact]-res[ordT]
+        for ordQ in eachindex(a[ordT])
+            subst!(aux, a[ordT+ordfact], aux, ordQ)
+        end
     else
-        aux = -res[ordT]
+        for ordQ in eachindex(a[ordT])
+            subst!(aux, aux, ordQ)
+        end
     end
     for ordQ in eachindex(res[ordT])
         div!(res[ordT], aux, b[ordfact], ordQ)
