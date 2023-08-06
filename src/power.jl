@@ -521,7 +521,7 @@ end
 function sqrt(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
     # First non-zero coefficient
     l0nz = findfirst(a)
-    aux = TaylorN( zero(sqrt(a[0][1][1])), get_order(a[0]) )
+    aux = TaylorN( zero(sqrt(a[0][0][1])), a[0].order )
     if l0nz < 0
         return Taylor1( aux, a.order )
     elseif isodd(l0nz) # l0nz must be pair
