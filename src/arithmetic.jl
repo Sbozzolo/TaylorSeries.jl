@@ -208,7 +208,7 @@ for (f, fc) in ((:+, :(add!)), (:-, :(subst!)))
             ($f)(a::$T{T}, b::$T{S}) where {T<:Number, S<:Number} =
                 ($f)(promote(a, b)...)
 
-            function ($f)(a::$T{T}, b::$T{T}) where {T<:NumberNotSeriesN}
+            function ($f)(a::$T{T}, b::$T{T}) where {T<:Number}
                 if a.order != b.order
                     a, b = fixorder(a, b)
                 end
@@ -284,6 +284,7 @@ for (f, fc) in ((:+, :(add!)), (:-, :(subst!)))
             return HomogeneousPolynomial(v, a.order)
         end
 
+        # NOTE add! and subst! act as += or -= for HomogeneousPolynomial
         function ($fc)(res::HomogeneousPolynomial{T}, a::HomogeneousPolynomial{T},
                 b::HomogeneousPolynomial{T}, k::Int) where {T<:NumberNotSeriesN}
             res[k] += ($f)(a[k], b[k])
@@ -357,9 +358,7 @@ for (f, fc) in ((:+, :(add!)), (:-, :(subst!)))
         function ($fc)(res::Taylor1{TaylorN{T}}, a::Taylor1{TaylorN{T}},
                 b::Taylor1{TaylorN{T}}, ordT::Int) where {T<:NumberNotSeries}
             @inbounds for ordQ in eachindex(a[ordT])
-                @inbounds for k in eachindex(a[ordT][ordQ])
-                    ($fc)(res[ordT][ordQ], a[ordT][ordQ], b[ordT][ordQ], k)
-                end
+                $(fc)(res[ordT], a[ordT], b[ordT], ordQ)
             end
             return nothing
         end
@@ -522,7 +521,7 @@ c_k = \sum_{j=0}^k a_j b_{k-j}.
 """
     mul!(c, a, b) --> nothing
 
-Return `c = a*b` with no allocation; all arguments are `HomogeneousPolynomial`.
+Return `c += a*b` with minimum allocation; all arguments are `HomogeneousPolynomial`.
 
 """
 @inline function mul!(c::HomogeneousPolynomial, a::HomogeneousPolynomial,
