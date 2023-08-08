@@ -14,7 +14,8 @@ for T in (:Taylor1, :TaylorN)
             order = a.order
             aux = exp(zero(constant_term(a)))
             aa = aux * a
-            c = $T( aux, order )
+            # Note: `c` is simply initialized to zero
+            c = $T( zero(aux), order )
             for k in eachindex(a)
                 exp!(c, aa, k)
             end
@@ -23,8 +24,9 @@ for T in (:Taylor1, :TaylorN)
 
         function expm1(a::$T{T}) where {T<:Number}
             order = a.order
-            aux = one(expm1(constant_term(a)))
-            aa = aux * a
+            aux = expm1(zero(constant_term(a)))
+            aa = one(aux) * a
+            # Note: `c` is simply initialized to zero
             c = $T( aux, order )
             for k in eachindex(a)
                 expm1!(c, aa, k)
@@ -37,8 +39,9 @@ for T in (:Taylor1, :TaylorN)
                     """The 0-th order coefficient must be non-zero in order to expand `log` around 0."""))
 
             order = a.order
-            aux = log(constant_term(a))
+            aux = log(one(constant_term(a)))
             aa = one(aux) * a
+            # Note: `c` is simply initialized to zero
             c = $T( aux, order )
             for k in eachindex(a)
                 log!(c, aa, k)
@@ -51,8 +54,9 @@ for T in (:Taylor1, :TaylorN)
             #         """The 0-th order coefficient must be larger than -1 in order to expand `log1`."""))
 
             order = a.order
-            aux = log1p(constant_term(a))
+            aux = log1p(zero(constant_term(a)))
             aa = one(aux) * a
+            # Note: `c` is simply initialized to zero
             c = $T( aux, order )
             for k in eachindex(a)
                 log1p!(c, aa, k)
@@ -90,10 +94,12 @@ for T in (:Taylor1, :TaylorN)
 
         function tan(a::$T{T}) where {T<:Number}
             order = a.order
-            aux = tan(constant_term(a))
+            aux = tan(zero(constant_term(a)))
             aa = one(aux) * a
+            # Note: `c` and `c2` are simply initialized to zero
             c = $T(aux, order)
-            c2 = $T(aux^2, order)
+            # c2 = $T(aux^2, order)
+            c2 = $T(aux, order)
             for k in eachindex(a)
                 tan!(c, aa, c2, k)
             end
@@ -106,10 +112,12 @@ for T in (:Taylor1, :TaylorN)
                 """Series expansion of asin(x) diverges at x = ±1."""))
 
             order = a.order
-            aux = asin(a0)
+            aux = asin(zero(a0))
             aa = one(aux) * a
+            # Note: `c` and `r` are simply initialized to zero
             c = $T( aux, order )
-            r = $T( sqrt(1 - a0^2), order )
+            # r = $T( sqrt(1 - a0^2), order )
+            r = $T( aux, order )
             for k in eachindex(a)
                 asin!(c, aa, r, k)
             end
@@ -122,10 +130,12 @@ for T in (:Taylor1, :TaylorN)
                 """Series expansion of acos(x) diverges at x = ±1."""))
 
             order = a.order
-            aux = acos(a0)
+            aux = zero(acos(a0))
             aa = one(aux) * a
+            # Note: `c` and `r` are simply initialized to zero
             c = $T( aux, order )
-            r = $T( sqrt(1 - a0^2), order )
+            # r = $T( sqrt(1 - a0^2), order )
+            r = $T( aux, order )
             for k in eachindex(a)
                 acos!(c, aa, r, k)
             end
@@ -135,10 +145,12 @@ for T in (:Taylor1, :TaylorN)
         function atan(a::$T{T}) where {T<:Number}
             order = a.order
             a0 = constant_term(a)
-            aux = atan(a0)
+            aux = atan(zero(a0))
             aa = one(aux) * a
+            # Note: `c` and `r` are simply initialized to zero
             c = $T( aux, order)
-            r = $T(one(aux) + a0^2, order)
+            # r = $T(one(aux) + a0^2, order)
+            r = $T( aux, order)
             for k in eachindex(a)
                 atan!(c, aa, r, k)
             end
@@ -167,16 +179,17 @@ for T in (:Taylor1, :TaylorN)
 
         function tanh(a::$T{T}) where {T<:Number}
             order = a.order
-            aux = tanh( constant_term(a) )
+            aux = tanh( zero(constant_term(a)) )
             aa = one(aux) * a
+            # Note: `c` and `c2` are simply initialized to zero
             c = $T( aux, order)
-            c2 = $T( aux^2, order)
+            # c2 = $T( aux^2, order)
+            c2 = $T( aux, order)
             for k in eachindex(a)
                 tanh!(c, aa, c2, k)
             end
             return c
         end
-
 
         function asinh(a::$T{T}) where {T<:Number}
             order = a.order
@@ -195,7 +208,7 @@ for T in (:Taylor1, :TaylorN)
 
         function acosh(a::$T{T}) where {T<:Number}
             a0 = constant_term(a)
-            a0^2 == one(a0) && throw(DomainError(a,
+            (a0 == one(a0) || a0 == -one(a0)) && throw(DomainError(a,
                 """Series expansion of acosh(x) diverges at x = ±1."""))
 
             order = a.order
@@ -272,6 +285,7 @@ for T in (:Taylor1, :TaylorN)
                 @inbounds c[0] = exp(constant_term(a))
                 return nothing
             end
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = k * a[k] * c[0]
             else
@@ -293,6 +307,7 @@ for T in (:Taylor1, :TaylorN)
                 @inbounds c[0] = expm1(constant_term(a))
                 return nothing
             end
+            zero!(c, a, k)
             c0 = c[0]+one(c[0])
             if $T == Taylor1
                 @inbounds c[k] = k * a[k] * c0
@@ -319,6 +334,7 @@ for T in (:Taylor1, :TaylorN)
                 return nothing
             end
 
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = (k-1) * a[1] * c[k-1]
             else
@@ -349,6 +365,7 @@ for T in (:Taylor1, :TaylorN)
 
             a0 = constant_term(a)
             a0p1 = a0+one(a0)
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = (k-1) * a[1] * c[k-1]
             else
@@ -373,6 +390,8 @@ for T in (:Taylor1, :TaylorN)
             end
 
             x = a[1]
+            zero!(s, a, k)
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds s[k] = x * c[k-1]
                 @inbounds c[k] = -x * s[k-1]
@@ -418,6 +437,7 @@ for T in (:Taylor1, :TaylorN)
                 return nothing
             end
 
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = k * a[k] * c2[0]
             else
@@ -444,6 +464,7 @@ for T in (:Taylor1, :TaylorN)
                 return nothing
             end
 
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = (k-1) * r[1] * c[k-1]
             else
@@ -469,6 +490,7 @@ for T in (:Taylor1, :TaylorN)
                 return nothing
             end
 
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = (k-1) * r[1] * c[k-1]
             else
@@ -494,6 +516,7 @@ for T in (:Taylor1, :TaylorN)
                 return nothing
             end
 
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = (k-1) * r[1] * c[k-1]
             else
@@ -519,6 +542,8 @@ for T in (:Taylor1, :TaylorN)
             end
 
             x = a[1]
+            zero!(s, a, k)
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds s[k] = x * c[k-1]
                 @inbounds c[k] = x * s[k-1]
@@ -549,6 +574,7 @@ for T in (:Taylor1, :TaylorN)
                 return nothing
             end
 
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = k * a[k] * c2[0]
             else
@@ -575,6 +601,7 @@ for T in (:Taylor1, :TaylorN)
                 return nothing
             end
 
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = (k-1) * r[1] * c[k-1]
             else
@@ -600,6 +627,7 @@ for T in (:Taylor1, :TaylorN)
                 return nothing
             end
 
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = (k-1) * r[1] * c[k-1]
             else
@@ -625,6 +653,7 @@ for T in (:Taylor1, :TaylorN)
                 return nothing
             end
 
+            zero!(c, a, k)
             if $T == Taylor1
                 @inbounds c[k] = (k-1) * r[1] * c[k-1]
             else
@@ -647,209 +676,6 @@ for T in (:Taylor1, :TaylorN)
 end
 
 
-function exp(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    aux = exp(zero(a[0]))
-    aa = aux * a
-    c = Taylor1( aux, order )
-    for k in eachindex(a)
-        exp!(c, aa, k)
-    end
-    return c
-end
-
-function expm1(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    aux = one(expm1(a[0]))
-    aa = aux * a
-    c = Taylor1( aux, order )
-    for k in eachindex(a)
-        expm1!(c, aa, k)
-    end
-    return c
-end
-
-function log(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    iszero(constant_term(a)) && throw(DomainError(a,
-            """The 0-th order coefficient must be non-zero in order to expand `log` around 0."""))
-
-    order = a.order
-    aux = one(log(constant_term(a)))
-    aa = aux * a
-    c = Taylor1( aux, order )
-    for k in eachindex(a)
-        log!(c, aa, k)
-    end
-    return c
-end
-
-function log1p(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    # constant_term(a) < -one(constant_term(a)) && throw(DomainError(a,
-    #         """The 0-th order coefficient must be larger than -1 in order to expand `log1`."""))
-
-    order = a.order
-    aux = one(log1p(constant_term(a)))
-    aa = aux * a
-    c = Taylor1( aux, order )
-    for k in eachindex(a)
-        log1p!(c, aa, k)
-    end
-    return c
-end
-
-function sincos(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    s0, c0 = sincos(constant_term(a))
-    aa = one(s0) * a
-    s = Taylor1( s0, order )
-    c = Taylor1( c0, order )
-    for k in eachindex(a)
-        sincos!(s, c, aa, k)
-    end
-    return s, c
-end
-
-function sincospi(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    s0, c0 = sincospi(constant_term(a))
-    s = Taylor1( s0, order )
-    c = Taylor1( c0, order )
-    aa = one(s0) * a
-    for k in eachindex(a)
-        sincospi!(s, c, aa, k)
-    end
-    return s, c
-end
-
-function tan(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    aux = tan(constant_term(a))
-    aa = one(aux) * a
-    c  = Taylor1(aux, order)
-    c2 = Taylor1(aux, order)
-    for k in eachindex(a)
-        tan!(c, aa, c2, k)
-    end
-    return c
-end
-
-function asin(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    a0 = constant_term(a)
-    (a0 == one(a0) || a0 == -one(a0)) && throw(DomainError(a,
-        """Series expansion of asin(x) diverges at x = ±1."""))
-
-    order = a.order
-    aux = asin(a0)
-    aa = one(aux) * a
-    c = Taylor1( aux, order )
-    r = Taylor1( aux, order )
-    for k in eachindex(a)
-        asin!(c, aa, r, k)
-    end
-    return c
-end
-
-function acos(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    a0 = constant_term(a)
-    (a0 == one(a0) || a0 == -one(a0)) && throw(DomainError(a,
-        """Series expansion of acos(x) diverges at x = ±1."""))
-
-    order = a.order
-    aux = acos(a0)
-    aa = one(aux) * a
-    c = Taylor1( aux, order )
-    r = Taylor1( aux, order )
-    for k in eachindex(a)
-        acos!(c, aa, r, k)
-    end
-    return c
-end
-
-function atan(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    aux = atan(a[0])
-    aa = one(aux) * a
-    c = Taylor1( aux, order)
-    r = Taylor1( aux, order)
-    for k in eachindex(a)
-        atan!(c, aa, r, k)
-    end
-    return c
-end
-
-function sinhcosh(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    s0, c0 = sinhcosh(constant_term(a))
-    aa = one(s0) * a
-    s = Taylor1( s0, order )
-    c = Taylor1( c0, order )
-    for k in eachindex(a)
-        sinhcosh!(s, c, aa, k)
-    end
-    return s, c
-end
-
-function tanh(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    aux = tanh( constant_term(a) )
-    aa = one(aux) * a
-    c  = Taylor1( aux, order)
-    c2 = Taylor1( aux, order)
-    for k in eachindex(a)
-        tanh!(c, aa, c2, k)
-    end
-    return c
-end
-
-function asinh(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    a0 = constant_term(a)
-    aux = asinh(a0)
-    aa = one(aux) * a
-    c = Taylor1( aux, order )
-    r = Taylor1( sqrt(a0^2 + 1), order )
-    iszero(constant_term(r)) && throw(DomainError(a,
-        """Series expansion of asinh(x) diverges at x = ±im."""))
-
-    for k in eachindex(a)
-        asinh!(c, aa, r, k)
-    end
-    return c
-end
-
-function acosh(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    a0 = constant_term(a)
-    a0^2 == one(a0) && throw(DomainError(a,
-        """Series expansion of acosh(x) diverges at x = ±1."""))
-
-    order = a.order
-    aux = acosh(a0)
-    aa = one(aux) * a
-    c = Taylor1( aux, order )
-    r = Taylor1( sqrt(a0^2 - 1), order )
-    for k in eachindex(a)
-        acosh!(c, aa, r, k)
-    end
-    return c
-end
-
-function atanh(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
-    order = a.order
-    a0 = constant_term(a)
-    aux = atanh(a0)
-    aa = one(aux) * a
-    c = Taylor1( aux, order)
-    r = Taylor1(one(aux) - a0^2, order)
-    iszero(constant_term(r)) && throw(DomainError(a,
-        """Series expansion of atanh(x) diverges at x = ±1."""))
-
-    for k in eachindex(a)
-        atanh!(c, aa, r, k)
-    end
-    return c
-end
-
-
 
 @inline function zero!(c::Taylor1{TaylorN{T}}, a::Taylor1{TaylorN{T}},
         k::Int) where {T<:NumberNotSeries}
@@ -861,16 +687,9 @@ end
 
 @inline function one!(c::Taylor1{TaylorN{T}}, a::Taylor1{TaylorN{T}},
         k::Int) where {T<:NumberNotSeries}
+    zero!(c, a, k)
     if k == 0
-        for ordQ in eachindex(a[0])
-            @inbounds if ordQ == 0
-                c[0][ordQ] = one(a[0][ordQ])
-            else
-                c[0][ordQ] = zero(a[0][ordQ])
-            end
-        end
-    else
-        @inbounds zero!(c, a, k)
+        one!(c[k], a[k], 0)
     end
     return nothing
 end
@@ -905,6 +724,7 @@ end
     end
     # The recursion formula
     tmp = TaylorN( zero(a[k][0][1]), a[0].order)
+    zero!(res, a, k)
     for i = 0:k-1
         @inbounds for ordQ in eachindex(a[0])
             tmp[ordQ] = (k-i) * res[i][ordQ]
@@ -928,7 +748,7 @@ end
     end
     # The recursion formula
     tmp = TaylorN( zero(a[k][0][1]), a[0].order)
-    # i=0 term fo sum
+    # i=0 term of sum
     @inbounds for ordQ in eachindex(a[0])
         one!(tmp, a[0], ordQ)
         add!(tmp, res[0], tmp, ordQ)
@@ -965,6 +785,7 @@ end
     end
     # The recursion formula
     tmp = TaylorN( zero(a[k][0][1]), a[0].order)
+    zero!(res, a, k)
     for i = 1:k-1
         @inbounds for ordQ in eachindex(a[0])
             tmp[ordQ] = (k-i) * res[k-i][ordQ]
@@ -1022,12 +843,14 @@ end
         a::Taylor1{TaylorN{T}}, k::Int) where {T<:NumberNotSeries}
     if k == 0
         @inbounds for ordQ in eachindex(a[0])
-            sincos!(s[0], c[0], a[0], k)
+            sincos!(s[0], c[0], a[0], ordQ)
         end
         return nothing
     end
     # The recursion formula
     x = TaylorN( a[k][0][1], a[0].order )
+    zero!(s, a, k)
+    zero!(c, a, k)
     @inbounds for i = 1:k
         for ordQ in eachindex(a[0])
             x[ordQ] = i * a[i][ordQ]
@@ -1102,6 +925,7 @@ end
     end
     # The recursion formula
     tmp = TaylorN( zero(a[0][0][1]), a[0].order)
+    zero!(res, a, k)
     for i in 1:k-1
         @inbounds for ordQ in eachindex(a[0])
             tmp[ordQ] = (k-i) * res[k-i][ordQ]
@@ -1146,6 +970,7 @@ end
     end
     # The recursion formula
     tmp = TaylorN( zero(a[0][0][1]), a[0].order)
+    zero!(res, a, k)
     for i in 1:k-1
         @inbounds for ordQ in eachindex(a[0])
             tmp[ordQ] = (k-i) * res[k-i][ordQ]
@@ -1185,6 +1010,7 @@ end
     end
     # The recursion formula
     tmp = TaylorN( zero(a[0][0][1]), a[0].order )
+    zero!(res, a, k)
     for i in 1:k-1
         @inbounds for ordQ in eachindex(a[0])
             tmp[ordQ] = (k-i) * res[k-i][ordQ]
@@ -1206,12 +1032,14 @@ end
         a::Taylor1{TaylorN{T}}, k::Int) where {T<:NumberNotSeries}
     if k == 0
         @inbounds for ordQ in eachindex(a[0])
-            sinhcosh!(s[0], c[0], a[0], k)
+            sinhcosh!(s[0], c[0], a[0], ordQ)
         end
         return nothing
     end
     # The recursion formula
     x = TaylorN( a[k][0][1], a[0].order )
+    zero!(s, a, k)
+    zero!(c, a, k)
     @inbounds for i = 1:k
         for ordQ in eachindex(a[0])
             x[ordQ] = i * a[i][ordQ]
@@ -1269,6 +1097,7 @@ end
     end
     # The recursion formula
     tmp = TaylorN( zero(a[0][0][1]), a[0].order)
+    zero!(res, a, k)
     for i in 1:k-1
         @inbounds for ordQ in eachindex(a[0])
             tmp[ordQ] = (k-i) * res[k-i][ordQ]
@@ -1312,6 +1141,7 @@ end
     end
     # The recursion formula
     tmp = TaylorN( zero(a[0][0][1]), a[0].order)
+    zero!(res, a, k)
     for i in 1:k-1
         @inbounds for ordQ in eachindex(a[0])
             tmp[ordQ] = (k-i) * res[k-i][ordQ]
@@ -1349,6 +1179,7 @@ end
     end
     # The recursion formula
     tmp = TaylorN( zero(a[0][0][1]), a[0].order )
+    zero!(res, a, k)
     for i in 1:k-1
         @inbounds for ordQ in eachindex(a[0])
             tmp[ordQ] = (k-i) * res[k-i][ordQ]

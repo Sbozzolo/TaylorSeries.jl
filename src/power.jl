@@ -276,10 +276,11 @@ end
         return sqrt!(res, a, ordT)
     end
 
+    # Initialize to zero res[ordT]
+    zero!(res, a, ordT)
     # First non-zero coefficient
     l0 = findfirst(a)
     if l0 < 0
-        zero!(res, a, ordT)
         return nothing
     end
 
@@ -290,13 +291,11 @@ end
     lnull = trunc(Int, r*l0 )
     kprime = ordT-lnull
     if (kprime < 0) || (lnull > a.order)
-        zero!(res, a, ordT)
         return nothing
     end
 
     # Relevant for positive integer r, to avoid round-off errors
     if isinteger(r) && r > 0 && (ordT > r*findlast(a))
-        zero!(res, a, ordT)
         return nothing
     end
 
@@ -421,20 +420,25 @@ end
         return nothing
     end
 
+    # Initialize to zero res[ordT]
+    zero!(res, a, ordT)
     kodd = ordT%2
     kend = (ordT - 2 + kodd) >> 1
-    @inbounds for ordQ in eachindex(a[ordT])
-        for i = 0:kend
-            mul!(res[ordT], a[i], a[ordT-i], ordQ)
+    tmp = TaylorN( zero(a[0][0][1]), a[0].order )
+    for i = 0:kend
+        @inbounds for ordQ in eachindex(a[ordT])
+            mul!(tmp, a[i], a[ordT-i], ordQ)
         end
-        res[ordT][ordQ] = 2 * res[ordT][ordQ]
+    end
+    @inbounds for ordQ in eachindex(a[ordT])
+        res[ordT][ordQ] = 2 * tmp[ordQ]
     end
     kodd == 1 && return nothing
 
-    @inbounds aux = zero(a[ordT])
     @inbounds for ordQ in eachindex(a[0])
-        sqr!(aux, a[ordT >> 1], ordQ)
-        add!(res[ordT], res[ordT], aux, ordQ)
+        zero!(tmp, a[0], ordQ)
+        sqr!(tmp, a[ordT >> 1], ordQ)
+        add!(res[ordT], res[ordT], tmp, ordQ)
     end
 
     return nothing
@@ -494,7 +498,7 @@ function sqrt(a::Taylor1{T}) where {T<:Number}
     c_order = l0nz == 0 ? a.order : a.order >> 1
     c = Taylor1( aux, c_order )
     aa = convert(Taylor1{eltype(aux)}, a)
-    for k = lnull:c_order
+    for k in eachindex(c)
         sqrt!(c, aa, k, lnull)
     end
 
@@ -511,7 +515,7 @@ function sqrt(a::TaylorN)
 
     c = TaylorN( p0, a.order)
     aa = convert(TaylorN{eltype(p0)}, a)
-    for k in 1:a.order
+    for k in eachindex(c)
         sqrt!(c, aa, k)
     end
 
@@ -535,7 +539,7 @@ function sqrt(a::Taylor1{TaylorN{T}}) where {T<:NumberNotSeries}
     c_order = l0nz == 0 ? a.order : a.order >> 1
     c = Taylor1( aux, c_order )
     aa = convert(Taylor1{eltype(aux)}, a)
-    for k = lnull:c_order
+    for k in eachindex(c)
         sqrt!(c, aa, k, lnull)
     end
 
@@ -567,6 +571,11 @@ coefficient, which must be even.
 """ sqrt!
 
 @inline function sqrt!(c::Taylor1{T}, a::Taylor1{T}, k::Int, k0::Int=0) where {T<:Number}
+
+    if k < k0
+        c[k] = zero(a[0])
+        return nothing
+    end
 
     if k == k0
         @inbounds c[k] = sqrt(a[2*k0])
@@ -620,6 +629,13 @@ end
 @inline function sqrt!(res::Taylor1{TaylorN{T}}, a::Taylor1{TaylorN{T}}, ordT::Int,
         ordT0::Int=0) where {T<:NumberNotSeries}
 
+    if ordT < ordT0
+        for ordQ in eachindex(a[0])
+            zero!(res[ordT], a[0], ordQ)
+        end
+        return nothing
+    end
+
     if ordT == ordT0
         for ordQ in eachindex(a[0])
             sqrt!(res[ordT], a[2*ordT0], ordQ)
@@ -627,34 +643,36 @@ end
         return nothing
     end
 
-    @inbounds aux = TaylorN( zero(a[ordT][0][1]), a[0].order)
-    @inbounds aux1 = TaylorN( zero(a[ordT][0][1]), a[0].order)
+    # Initialize to zero res[ordT]
+    zero!(res, a, ordT)
+    @inbounds tmp = TaylorN( zero(a[ordT][0][1]), a[0].order)
+    @inbounds tmp1 = TaylorN( zero(a[ordT][0][1]), a[0].order)
     ordT_odd = (ordT - ordT0)%2
     ordT_end = (ordT - ordT0 - 2 + ordT_odd) >> 1
     imax = min(ordT0+ordT_end, a.order)
     imin = max(ordT0+1, ordT+ordT0-a.order)
     if imin ≤ imax
         @inbounds for ordQ in eachindex(a[0])
-            mul!(aux, res[imin], res[ordT+ordT0-imin], ordQ)
+            mul!(tmp, res[imin], res[ordT+ordT0-imin], ordQ)
         end
     end
-    @inbounds for i = imin+1:imax
+    for i = imin+1:imax
         @inbounds for ordQ in eachindex(a[0])
-            mul!(aux, res[i], res[ordT+ordT0-i], ordQ)
+            mul!(tmp, res[i], res[ordT+ordT0-i], ordQ)
         end
     end
 
     @inbounds for ordQ in eachindex(a[0])
-        aux[ordQ] = -2 * aux[ordQ]
+        tmp[ordQ] = -2 * tmp[ordQ]
         if ordT+ordT0 ≤ a.order
-            add!(aux, a[ordT+ordT0], aux, ordQ)
+            add!(tmp, a[ordT+ordT0], tmp, ordQ)
         end
         if ordT_odd == 0
-            sqr!(aux1, res[ordT_end+ordT0+1], ordQ)
-            subst!(aux, aux, aux1, ordQ)
+            sqr!(tmp1, res[ordT_end+ordT0+1], ordQ)
+            subst!(tmp, tmp, tmp1, ordQ)
         end
-        aux1[ordQ] = 2*res[ordT0][ordQ]
-        div!(res[ordT], aux, aux1, ordQ)
+        tmp1[ordQ] = 2*res[ordT0][ordQ]
+        div!(res[ordT], tmp, tmp1, ordQ)
     end
 
     return nothing

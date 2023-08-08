@@ -263,11 +263,11 @@ using Test
     @test log1p(xx+tt) == log(1+xx+tt)
     exp(log(xx+tt)) == log(exp(xx+tt))
     @test exp(log(pp)) ≈ log(exp(pp))
-    @test sincos(xx) == sincos(xx[0]) .+ zero(tt)
+    @test sincos(δx + xx) == sincos(δx+xx[0]) .+ zero(tt)
     qq = sincos(pp)
     @test exp(im*pp) ≈ qq[2] + im*qq[1]
     @test qq[2]^2 ≈ 1 - qq[1]^2
-    @test sincospi(xx) == sincospi(xx[0]) .+ zero(tt)
+    @test sincospi(δx + xx - 1) == sincospi(δx + xx[0] - 1) .+ zero(tt)
     @test all(sincospi(pp) .≈ sincos(pi*pp))
     @test tan(xx) == tan(xx[0]) + zero(tt)
     @test tan(xx+tt) ≈ sin(xx+tt)/cos(xx+tt)
