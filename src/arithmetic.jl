@@ -466,6 +466,7 @@ end
 
 # Internal multiplication functions
 for T in (:Taylor1, :TaylorN)
+    # NOTE: For $T = TaylorN, `mul!` *accumulates* the result of a * b in c
     @eval @inline function mul!(c::$T{T}, a::$T{T}, b::$T{T}, k::Int) where {T<:Number}
         if $T == Taylor1
             @inbounds c[k] = a[0] * b[k]
@@ -492,6 +493,7 @@ for T in (:Taylor1, :TaylorN)
     end
 end
 
+# NOTE: Here `mul!` *accumulates* the result of a * b in c
 function mul!(res::Taylor1{TaylorN{T}}, a::Taylor1{TaylorN{T}}, b::Taylor1{TaylorN{T}},
         ordT::Int) where {T<:NumberNotSeries}
     for k in 0:ordT
@@ -508,6 +510,8 @@ end
 
 Update the `k`-th expansion coefficient `c[k]` of `c = a * b`,
 where all `c`, `a`, and `b` are either `Taylor1` or `TaylorN`.
+Note that for `TaylorN` and `Taylor1{TaylorN{T}}` the result
+of `a * b` is accumulated in `c[k]`.
 
 The coefficients are given by
 
@@ -599,10 +603,15 @@ for T in (:HomogeneousPolynomial, :TaylorN)
     @eval function /(b::Taylor1{$T{S}}, a::$T{T}) where
             {T<:NumberNotSeries, S<:NumberNotSeries}
         @inbounds aux = b[0] / a
-        R = typeof(aux)
-        coeffs = Array{R}(undef, length(b.coeffs))
-        @__dot__ coeffs = b.coeffs / a
-        return Taylor1(coeffs, b.order)
+        # R = typeof(aux)
+        # coeffs = Array{R}(undef, length(b.coeffs))
+        # @__dot__ coeffs = b.coeffs / a
+        # return Taylor1(coeffs, b.order)
+        v = Taylor1(zero(aux), b.order)
+        @inbounds for k in eachindex(b)
+            v[k] = b[k] / a
+        end
+        return v
     end
 end
 
@@ -730,6 +739,7 @@ end
 div!(v::Taylor1, b::NumberNotSeries, a::Taylor1, k::Int) =
     div!(v::Taylor1, Taylor1(b, a.order), a, k)
 
+# NOTE: Here `div!` *accumulates* the result of a / b in c[k] (k > 0)
 @inline function div!(c::TaylorN, a::TaylorN, b::TaylorN, k::Int)
     if k==0
         @inbounds c[0] = a[0] / constant_term(b)
@@ -743,6 +753,7 @@ div!(v::Taylor1, b::NumberNotSeries, a::Taylor1, k::Int) =
     return nothing
 end
 
+# NOTE: Here `div!` *accumulates* the result of a / b in c[k] (k > 0)
 @inline function div!(res::Taylor1{TaylorN{T}}, a::Taylor1{TaylorN{T}},
         b::Taylor1{TaylorN{T}}, ordT::Int) where {T<:NumberNotSeriesN}
 

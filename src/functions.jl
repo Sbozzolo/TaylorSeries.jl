@@ -731,9 +731,7 @@ end
             mul!(res[k], tmp, a[k-i], ordQ)
         end
     end
-    @inbounds for ordQ in eachindex(a[0])
-        res[k][ordQ] = res[k][ordQ] / k
-    end
+    div!(res, res, k, k)
     return nothing
 end
 
@@ -762,9 +760,7 @@ end
             mul!(res[k], tmp, a[k-i], ordQ)
         end
     end
-    @inbounds for ordQ in eachindex(a[0])
-        res[k][ordQ] = res[k][ordQ] / k
-    end
+    div!(res, res, k, k)
     return nothing
 end
 
@@ -792,8 +788,8 @@ end
             mul!(res[k], tmp, a[i], ordQ)
         end
     end
+    div!(res, res, k, k)
     @inbounds for ordQ in eachindex(a[0])
-        res[k][ordQ] = res[k][ordQ] / k
         subst!(tmp, a[k], res[k], ordQ)
         zero!(res[k], a[0], ordQ)
         div!(res[k], tmp, a[0], ordQ)
@@ -830,8 +826,8 @@ end
             mul!(res[k], tmp, a[i], ordQ)
         end
     end
+    div!(res, res, k, k)
     @inbounds for ordQ in eachindex(a[0])
-        res[k][ordQ] = res[k][ordQ] / k
         subst!(tmp, a[k], res[k], ordQ)
         zero!(res[k], a[0], ordQ)
         div!(res[k], tmp, tmp1, ordQ)
@@ -848,7 +844,7 @@ end
         return nothing
     end
     # The recursion formula
-    x = TaylorN( a[k][0][1], a[0].order )
+    x = TaylorN( a[1][0][1], a[0].order )
     zero!(s, a, k)
     zero!(c, a, k)
     @inbounds for i = 1:k
@@ -858,10 +854,9 @@ end
             mul!(c[k], x, s[k-i], ordQ)
         end
     end
-    @inbounds for ordQ in eachindex(a[0])
-        s[k][ordQ] = s[k][ordQ] / k
-        c[k][ordQ] = -c[k][ordQ] / k
-    end
+    div!(s, s, k, k)
+    subst!(c, c, k)
+    div!(c, c, k, k)
     return nothing
 end
 
@@ -869,15 +864,11 @@ end
         a::Taylor1{TaylorN{T}}, k::Int) where {T<:NumberNotSeries}
     if k == 0
         @inbounds for ordQ in eachindex(a[0])
-            sincospi!(s[0], c[0], a[0], k)
+            sincospi!(s[0], c[0], a[0], ordQ)
         end
         return nothing
     end
-    # aa = pi * a
-    aa = Taylor1(pi * a[0], a.order)
-    @inbounds for ordQ in eachindex(a)
-        aa[ordQ] = pi * a[ordQ]
-    end
+    aa = pi * a
     sincos!(s, c, aa, k)
     return nothing
 end
@@ -900,6 +891,7 @@ end
         end
     end
     @inbounds for ordQ in eachindex(a[0])
+        zero!(tmp, res[k], ordQ)
         tmp[ordQ] = res[k][ordQ] / k
         add!(res[k], a[k], tmp, ordQ)
     end
@@ -932,8 +924,8 @@ end
             mul!(res[k], tmp, r[i], ordQ)
         end
     end
+    div!(res, res, k, k)
     @inbounds for ordQ in eachindex(a[0])
-        res[k][ordQ] = res[k][ordQ] / k
         subst!(tmp, a[k], res[k], ordQ)
         zero!(res[k], a[0], ordQ)
         div!(res[k], tmp, r[0], ordQ)
@@ -977,8 +969,8 @@ end
             mul!(res[k], tmp, r[i], ordQ)
         end
     end
+    div!(res, res, k, k)
     @inbounds for ordQ in eachindex(a[0])
-        res[k][ordQ] = res[k][ordQ] / k
         add!(tmp, a[k], res[k], ordQ)
         subst!(tmp, tmp, ordQ)
         zero!(res[k], a[0], ordQ)
@@ -1018,6 +1010,7 @@ end
         end
     end
     @inbounds for ordQ in eachindex(a[0])
+        zero!(tmp, res[k], ordQ)
         tmp[ordQ] = - res[k][ordQ] / k
         add!(tmp, a[k], tmp, ordQ)
         zero!(res[k], a[0], ordQ)
@@ -1047,10 +1040,8 @@ end
             mul!(c[k], x, s[k-i], ordQ)
         end
     end
-    @inbounds for ordQ in eachindex(a[0])
-        s[k][ordQ] = s[k][ordQ] / k
-        c[k][ordQ] = c[k][ordQ] / k
-    end
+    div!(s, s, k, k)
+    div!(c, c, k, k)
     return nothing
 end
 
@@ -1072,6 +1063,7 @@ end
         end
     end
     @inbounds for ordQ in eachindex(a[0])
+        zero!(tmp, res[k], ordQ)
         tmp[ordQ] = res[k][ordQ] / k
         subst!(res[k], a[k], tmp, ordQ)
     end
@@ -1104,8 +1096,8 @@ end
             mul!(res[k], tmp, r[i], ordQ)
         end
     end
+    div!(res, res, k, k)
     @inbounds for ordQ in eachindex(a[0])
-        res[k][ordQ] = res[k][ordQ] / k
         subst!(tmp, a[k], res[k], ordQ)
         zero!(res[k], a[0], ordQ)
         div!(res[k], tmp, r[0], ordQ)
@@ -1148,8 +1140,8 @@ end
             mul!(res[k], tmp, r[i], ordQ)
         end
     end
+    div!(res, res, k, k)
     @inbounds for ordQ in eachindex(a[0])
-        res[k][ordQ] = res[k][ordQ] / k
         subst!(tmp, a[k], res[k], ordQ)
         zero!(res[k], a[0], ordQ)
         div!(res[k], tmp, r[0], ordQ)
@@ -1187,6 +1179,7 @@ end
         end
     end
     @inbounds for ordQ in eachindex(a[0])
+        zero!(tmp, res[k], ordQ)
         tmp[ordQ] = res[k][ordQ] / k
         add!(tmp, a[k], tmp, ordQ)
         zero!(res[k], a[0], ordQ)
